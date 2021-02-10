@@ -23,9 +23,9 @@ navigation:
     url: https://support.10xgenomics.com/spatial-gene-expression/sample-prep/doc/demonstrated-protocol-visium-spatial-protocols-tissue-preparation-guide
 
   - heading: Support
-  - title: Using Slack in this workshop
+  - title: Slack
     url: base/slack
-  - title: Using Zoom in this workshop
+  - title: Zoom
     url: base/zoom
   - title: Cheat Sheets
     url: base/cheatSheetIndex
@@ -36,9 +36,9 @@ navigation:
 
   - heading: Prerequisites
   - title: CLI
-    url: https://ucdavis-bioinformatics-training.github.io/2021-March-Introduction-to-the-Command-Line-for-Bioinformatics/
+    url: base/cli_prerequisites
   - title: R
-    url: https://ucdavis-bioinformatics-training.github.io/2021-March-Introduction-to-R-for-Bioinformatics/
+    url: base/r_prerequisites
 
   - heading: Data Reduction
   - title: Project setup

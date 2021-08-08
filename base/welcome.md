@@ -5,6 +5,7 @@ __The mission of the Bioinformatics Core facility is to facilitate outstanding o
  <img src="https://raw.githubusercontent.com/ucdavis-bioinformatics-training/ucdavis-bioinformatics-training.presentations/master/misc/welcome_figure1.png" alt="welcome_figure1" width="800px"/>
 
 ## Staff and Students
+
 Our team offers custom bioinformatics services to academic and private organizations. We have a strong academic background with a focus on cutting edge, open source software. We replicate standard analysis pipelines (best practices) when appropriate, and/or develop novel applications and pipelines when needed, however we always emphasize biological interpretation of the data.
 
 
@@ -26,7 +27,7 @@ Our team offers custom bioinformatics services to academic and private organizat
 
 ## Structure of the Virtual Workshops
 
-Given the current Covid19 pandemic, and stay in place orders around the world, we've decided to take our popular bioinformatic workshops virtual. Our intent is to offer as close to an experience we can to our in-person workshops. We will hold the same goals and strive for a similar lecture/hand-on ratio. We will be using multiple technologies in order to help facilitate a maximum amount of interaction.
+Given the current Covid19 pandemic, and travel restrictions around the world, we have taken our popular bioinformatic workshops virtual. Our intent is to offer as close to an experience we can to our in-person workshops. We will hold the same goals and strive for a similar lecture/hand-on ratio. We will be using multiple technologies in order to help facilitate a maximum amount of interaction.
 
 #### Zoom
 
@@ -49,7 +50,7 @@ Text based communication will be conducted via a Slack channel. Staff will be mo
 
 #### Patience
 
-We ask for a little more patience as this process is also new to us, but we are committed to providing you the best educational experience we can (under the current conditions).
+We ask for a little more patience as this process, but we are committed to providing you the best educational experience we can (under the current conditions).
 
 ### Workshop Goals
 
@@ -81,17 +82,12 @@ Workshop materials are all posted on github, and publicly available
    [https://ucdavis-bioinformatics-training.github.io/](https://ucdavis-bioinformatics-training.github.io/)
 
 
-* This scRNAseq Workshop
+* This Intro to scRNAseq Workshop
 
    [https://ucdavis-bioinformatics-training.github.io/2021-August-Single-Cell-RNA-Seq-Analysis/](https://ucdavis-bioinformatics-training.github.io/2021-August-Single-Cell-RNA-Seq-Analysis/)
 
 ### Computing Cluster
 
-A portion of  this course will be conducted on our servers and compute cluster (tadpole.genomecenter.ucdavis.edu).
-
-Everyone should get an account.  
-[https://computing.genomecenter.ucdavis.edu](https://computing.genomecenter.ucdavis.edu)
-
-Request an account -> sponsor is "Bioinformatics Core Workshop"
+A portion of  this course will be conducted on our servers and compute cluster
 
 If you already have, or have had in the past, an account on our systems, then please tell us your username, or email, and we will add you to the workshop. **Do not create a new account.**

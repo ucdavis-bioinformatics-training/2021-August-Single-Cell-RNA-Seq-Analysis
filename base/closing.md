@@ -34,17 +34,6 @@ My recommendation is to follow all of the instructions again, from the beginning
 
 Continue pursuing single cell RNA-Seq analysis with one of our advanced topics single-day workshops, or explore another type of experiment with one of our other [offerings](https://registration.genomecenter.ucdavis.edu).
 
-### Advanced Single Cell Analysis
-
-* Preprocessing scRNA sequence data
-* Running cellranger, star and salmon then comparing
-* Anchoring of samples to other samples
-* Monocle cell trajectory analysis
-* Velocity analysis
-* VDJ T and B cell analysis
-
-For more information on these and other events, and to register, go to [https://registration.genomecenter.ucdavis.edu/](https://registration.genomecenter.ucdavis.edu/)
-
 ## Previous Workshops available online
 If you would like to take a look at the [documentation](https://ucdavis-bioinformatics-training.github.io/) from previous workshops.
 

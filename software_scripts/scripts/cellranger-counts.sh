@@ -27,10 +27,10 @@ echo "Allocated memory: " $MEM
 
 ## Where cellranger executable is located
 ## a) by loading a module
-#module load cellranger/3.1.0
+#module load cellranger/6.0.1
 
 ## b) or, by placing the location of the executables on the path (edit to your location)
-export PATH=/share/workshop/intro_scrnaseq/software/cellranger-6.0.0/bin:$PATH
+export PATH=/share/workshop/intro_scrnaseq/software/cellranger-6.0.2/bin:$PATH
 
 ## c) or if they are already on the path, do nothing
 

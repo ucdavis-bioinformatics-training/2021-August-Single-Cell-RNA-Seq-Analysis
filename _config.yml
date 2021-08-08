@@ -15,12 +15,6 @@ navigation:
     url: https://raw.githubusercontent.com/ucdavis-bioinformatics-training/ucdavis-bioinformatics-training.presentations/master/genomics/Genomics_a_perspective_May_2020.pdf
   - title: Experimental Design and Cost Estimation
     url: https://raw.githubusercontent.com/ucdavis-bioinformatics-training/ucdavis-bioinformatics-training.presentations/master/singlecell/scRNAseq-expDesign_May_2020.pdf
-  - title: Single Cell Sample Preparation - Dr. Diana Burkart-Waco
-    url: https://raw.githubusercontent.com/ucdavis-bioinformatics-training/ucdavis-bioinformatics-training.presentations/master/singlecell/2020_SingleCell_SampleTalk_DBurkart_Aug.pdf
-  - title: Biology at True Resolution - Introduction to Single Cell and Visium Spatial Solutions
-    url: https://raw.githubusercontent.com/ucdavis-bioinformatics-training/ucdavis-bioinformatics-training.presentations/master/singlecell/10x_Product_Overview_0813_UCD.pdf
-  - title: Visium Spatial Protocols - Tissue Preparation Guide
-    url: https://support.10xgenomics.com/spatial-gene-expression/sample-prep/doc/demonstrated-protocol-visium-spatial-protocols-tissue-preparation-guide
 
   - heading: Support
   - title: Slack
@@ -46,25 +40,25 @@ navigation:
   - title: Generating Expression Matrix
     url: data_reduction/Expression_Matrix
 
-  - heading: scRNAseq Analysis
-  - title: Prepare scRNAseq Analysis
-    url: data_analysis/scrna_analysis_prepare
-  - title: scRNAseq Analysis - PART1
-    url: data_analysis/scRNA_Workshop-PART1_fixed
-  - title: scRNAseq Analysis - PART2
-    url: data_analysis/scRNA_Workshop-PART2_fixed
-  - title: scRNAseq Analysis - PART3
-    url: data_analysis/scRNA_Workshop-PART3_fixed
-  - title: scRNAseq Analysis - PART4
-    url: data_analysis/scRNA_Workshop-PART4_fixed
-  - title: scRNAseq Analysis - PART5
-    url: data_analysis/scRNA_Workshop-PART5_fixed
-  - title: scRNAseq Analysis - PART6
-    url: data_analysis/scRNA_Workshop-PART6_fixed
-  - title: Shiny App (extra)
-    url: data_analysis/shiny_app_install
-  - title: Shiny App on AWS (extra)
-    url: data_analysis/shiny_on_aws
+  # - heading: scRNAseq Analysis
+  # - title: Prepare scRNAseq Analysis
+  #   url: data_analysis/scrna_analysis_prepare
+  # - title: scRNAseq Analysis - PART1
+  #   url: data_analysis/scRNA_Workshop-PART1_fixed
+  # - title: scRNAseq Analysis - PART2
+  #   url: data_analysis/scRNA_Workshop-PART2_fixed
+  # - title: scRNAseq Analysis - PART3
+  #   url: data_analysis/scRNA_Workshop-PART3_fixed
+  # - title: scRNAseq Analysis - PART4
+  #   url: data_analysis/scRNA_Workshop-PART4_fixed
+  # - title: scRNAseq Analysis - PART5
+  #   url: data_analysis/scRNA_Workshop-PART5_fixed
+  # - title: scRNAseq Analysis - PART6
+  #   url: data_analysis/scRNA_Workshop-PART6_fixed
+  # - title: Shiny App (extra)
+  #   url: data_analysis/shiny_app_install
+  # - title: Shiny App on AWS (extra)
+  #   url: data_analysis/shiny_on_aws
 
   - heading: ETC
   - title: Closing thoughts

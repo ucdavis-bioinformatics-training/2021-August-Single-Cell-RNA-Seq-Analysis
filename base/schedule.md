@@ -2,7 +2,7 @@
 
 All posted times are **Pacific** time zone. At least one break will be provided each morning and afternoon.
 
-### Monday, March 22
+### Monday, August 9
 
 |:----------- |:------------------- |
 |**8:50 am**  | Zoom session starts |
@@ -15,7 +15,7 @@ All posted times are **Pacific** time zone. At least one break will be provided 
 |**2:15 pm**  | Creating an Expression Matrix |
 |**4:30 pm** | Zoom session ends |
 
-### Tuesday, March 23
+### Tuesday, August 10
 
 |:----------- |:------------------- |
 |**8:50 am**  | Zoom session starts |
@@ -26,7 +26,7 @@ All posted times are **Pacific** time zone. At least one break will be provided 
 |**1:30 pm**   | Data Analysis Parts 1 - 2  |
 |**4:30 pm** | Zoom session ends |
 
-### Wednesday, March 24
+### Wednesday, August 11
 
 |:----------- |:------------------- |
 |**8:50 am**  | Zoom session starts |

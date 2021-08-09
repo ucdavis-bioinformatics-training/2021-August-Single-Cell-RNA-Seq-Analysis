@@ -189,8 +189,8 @@ the folder (or file) "cli" in the folder "msettles" in the folder "intro_scrnase
 
 Relative path: always relative to our current location.
 
-_a single dot (.) refers to the current directory_  
-_two dots (..) refers to the directory one level up_  
+_a single dot (.) refers to the current directory_
+_two dots (..) refers to the directory one level up_
 
 <img src="figures/cli_figure2.png" alt="cli_figure2" width="500px"/>
 
@@ -500,7 +500,7 @@ So let's run this script. We have to provide a relative reference to the script 
 And you should see all the commands in the file run in sequential order in the terminal.
 
 
-# Running jobs on the cluster and using modules
+# Running jobs on the cluster
 
 **1\.** In the UC Davis Bioinformatics Core we have a large computational cluster (named lssc0) that we use for our analyses. The job scheduling system we use on this cluster is called [Slurm](https://slurm.schedmd.com/). In this section, we will go through examples of the commands we will be using to interact with the cluster.
 
@@ -508,11 +508,10 @@ For this workshop we will be using a cluster reservation, meaning we've set asid
 
 |:---      |:---     |:---                 |:---                 |:---         |
 |RESV_NAME |  STATE  |         START_TIME  |           END_TIME  | DURATION    |
-| workshop | ACTIVE  | 2021-03-21T00:00:00 | 2021-04-03T00:00:00 | 13-00:00:00 |  
+| workshop | ACTIVE  | 2021-08-09T00:00:00 | 2021-08-01T00:00:00 | 7-00:00:00 |
 
-  fleet-[10-11]
 
-You'll notice the reservation extends to May-3-2021, you will have an extra week to work on the cluster and workshop material.
+You'll notice the reservation extends to August-16-2021, you will have the whole week to work on the cluster and workshop material.
 
 ## First, what is a cluster?
 

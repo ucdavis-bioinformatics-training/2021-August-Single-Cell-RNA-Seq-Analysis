@@ -1,74 +1,238 @@
 ---
-title: "Single Cell RNAseq Part 1"
-author: "Bioinformatics Core"
+title: "Introduction to Single Cell RNAseq Part 1"
+author: "UCD Bioinformatics Core"
 output:
     html_document:
       keep_md: TRUE
 ---
 
-# Single Cell Analysis with Seurat and some custom code!
+Last Updated: March 23 2021, 5pm
 
-[Seurat](http://satijalab.org/seurat/) is a popular R package that is designed for QC, analysis, and exploration of single cell data. Seurat aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data. Further, the authors provide several [tutorials](https://satijalab.org/seurat/vignettes.html), on their website.
+# Part 1: Loading data from CellRanger into R
 
-The expression_tables_cellrangerV3.zip file contains the single cell matrix files for the three samples. These are isolated mouse cells ran on the 10X genomics platform (3' expression V2) for single cell RNA sequencing, sequenced with UC Davis on 1 HiSeq 4000 lane. The Experiment contains 3 samples, each merged from 2 original samples and then randomly subsamples to 1000 cells each.
+Our first Markdown document concentrates on getting data into R and setting up our initial object.
 
-The three samples are, Dorsal root ganglion neurons :
-At weaning, Ttpa+/+ mice were fed a normal diet (35 mg of dl-α-tocopheryl acetate/kg, vitE+) while and Ttpa-/- mice were fed either an α-TOH-deficient diet (<10 mg of dl-α-tocopheryl acetate/kg, vitE-), or α-TOH-supplemented diet (600 mg of dl-α-tocopheryl acetate/kg, vitE+++) diet.
+## Single Cell Analysis with Seurat and some custom code!
 
-* UCD_Adj_VitE - normal + Vitamin E
-* UCD_Supp_VitE - Vitamin E supplimented by diet.
-* UCD_VitE_Def - Vitamin E deficient animals
+[Seurat](http://satijalab.org/seurat/) (now Version 4) is a popular R package that is designed for QC, analysis, and exploration of single cell data. Seurat aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data. Further, the authors provide several [tutorials](https://satijalab.org/seurat/vignettes.html), on their website.
 
-We start with loading needed libraries for R, at this time all we need is the package [Seurat](http://satijalab.org/seurat/).
+The **intro2singlecell_March2021.zip** file contains the single cell matrix files and HDF5 files for four Covid positive PBMc samples. These are PBMC human cells ran on the 10X genomics platform (5' gene expression kit V2 with b-cell VDJ) for single cell RNA sequencing, sequenced with UC Davis in Nov and Dec of 2020 on a NovaSeq 6000. The experiment for the workshop contains 4 samples, each merged from 2 original samples and "normal" PBMC data from 10X Genomics.
+
+<img src="https://ucdavis-bioinformatics-training.github.io/2021-August-Single-Cell-RNA-Seq-Analysis/data_analysis/figures/covid.png" alt="Covid" width="400px"/>
+
+The four samples are,
+* PBMC2 - Performed in Nov
+* PBMC3 - Performed in Nov
+* T021 - Performed in Dec
+* T022 - Performed in Dec
+
+Also in the directory is the 10X "normal" PBMC dataset
+
+We start each markdown document with loading needed libraries for R
+
+
 ```{r, warning=FALSE,error=FALSE,message=FALSE}
+# must have Seurat
 library(Seurat)
-library(biomaRt)
+library(kableExtra)
+library(ggplot2)
 ```
 
+
+### Setup the experiment folder and data info
+```{r exp_setup, warning=FALSE,error=FALSE, message=FALSE}
+experiment_name = "Covid Example"
+dataset_loc <- "./intro2singlecell_March2021"
+ids <- c("PBMC2", "PBMC3", "T021PBMC", "T022PBMC")
+```
+
+
+## Read in the cellranger sample metrics csv files
+```{r read_metrics, warning=FALSE,error=FALSE, message=FALSE}
+d10x.metrics <- lapply(ids, function(i){
+  # remove _Counts is if names don't include them
+  metrics <- read.csv(file.path(dataset_loc,paste0(i,"_Counts/outs"),"metrics_summary.csv"), colClasses = "character")
+})
+experiment.metrics <- do.call("rbind", d10x.metrics)
+rownames(experiment.metrics) <- ids
+
+sequencing_metrics <- data.frame(t(experiment.metrics[,c(4:17,1,18,2,3,19,20)]))
+
+row.names(sequencing_metrics) <- gsub("\\."," ", rownames(sequencing_metrics))
+```
+
+And lets generate a pretty table
+
+```{r table_metrics, warning=FALSE,error=FALSE, message=FALSE}
+sequencing_metrics %>%
+  kable(caption = 'Cell Ranger Results') %>%
+  pack_rows("Sequencing Characteristics", 1, 7, label_row_css = "background-color: #666; color: #fff;") %>%
+  pack_rows("Mapping Characteristics", 8, 14, label_row_css = "background-color: #666; color: #fff;") %>%
+  pack_rows("Cell Characteristics", 15, 20, label_row_css = "background-color: #666; color: #fff;") %>%
+  kable_styling("striped")
+```
+
+
 ## Load the Cell Ranger Matrix Data and create the base Seurat object.
-Cell Ranger provides a function `cellranger aggr` that will combine multiple samples into a single matrix file. However, when processing data in R and Seurat this is unnecessary and we can aggregate them in R.
+Cell Ranger provides a function `cellranger aggr` that will combine multiple samples into a single matrix file. However, when processing data in R this is unnecessary and we can quickly aggregate them in R.
 
-Seurat provides a function `Read10X` to read in 10X data folder. First we read in data from each individual sample folder. First, we initialize the Seurat object (`CreateSeuratObject`) with the raw (non-normalized data). Keep all genes expressed in >= 10 cells. Keep all cells with at least 200 detected genes. Also extracting sample names, calculating and adding in the metadata mitochondrial percentage of each cell. Adding in the metadata batchid and cell cycle. Finally, saving the raw Seurat object.
+Seurat provides a function `Read10X` and `Read10X_h5` to read in 10X data folder. First we read in data from each individual sample folder. 
 
-```{r}
-dataset_loc <- "./expression_tables_cellrangerV3"
-ids <- c("UCD_Adj_VitE", "UCD_Supp_VitE", "UCD_VitE_Def")
+Later, we initialize the Seurat object (`CreateSeuratObject`) with the raw (non-normalized data). Keep all cells with at least 200 detected genes. Also extracting sample names, calculating and adding in the metadata mitochondrial percentage of each cell. Adding in the metadata batchid and cell cycle. Finally, saving the raw Seurat object.
 
-d10x.data <- sapply(ids, function(i){
-  d10x <- Read10X(file.path(dataset_loc,i,"outs/filtered_feature_bc_matrix"))
+## Load the Cell Ranger Matrix Data (hdf5 file) and create the base Seurat object.
+```{r load_data_hdf5, warning=FALSE,error=FALSE, message=FALSE}
+d10x.data <- lapply(ids, function(i){
+  d10x <- Read10X_h5(file.path(dataset_loc,paste0(i,"_Counts/outs"),"raw_feature_bc_matrix.h5"))
   colnames(d10x) <- paste(sapply(strsplit(colnames(d10x),split="-"),'[[',1L),i,sep="-")
   d10x
 })
+names(d10x.data) <- ids
 
+str(d10x.data)
+```
+
+If you don't have the needed hdf5 libraries you can read in the matrix files like such
+
+```{r load_data_matrix, warning=FALSE,error=FALSE, message=FALSE, eval=FALSE}
+d10x.data <- sapply(ids, function(i){
+  d10x <- Read10X(file.path(dataset_loc,paste0(i,"_Counts/outs"),"raw_feature_bc_matrix"))
+  colnames(d10x) <- paste(sapply(strsplit(colnames(d10x),split="-"),'[[',1L),i,sep="-")
+  d10x
+})
+names(d10x.data) <- ids
+```
+
+
+Lets recreate the pretty cellranger html plot
+```{r fig_barcode_umi, warning=FALSE,error=FALSE, message=FALSE, fig.width=10}
+cr_filtered_cells <- as.numeric(gsub(",","",as.character(unlist(sequencing_metrics["Estimated Number of Cells",]))))
+
+plot_cellranger_cells <- function(ind){
+  xbreaks = c(1,1e1,1e2,1e3,1e4,1e5,1e6)
+  xlabels = c("1","10","100","1000","10k","100K","1M")
+  ybreaks = c(1,2,5,10,20,50,100,200,500,1000,2000,5000,10000,20000,50000,100000,200000,500000,1000000)
+  ylabels = c("1","2","5","10","2","5","100","2","5","1000","2","5","10k","2","5","100K","2","5","1M")
+
+  pl1 <- data.frame(index=seq.int(1,ncol(d10x.data[[ind]])), nCount_RNA = sort(Matrix:::colSums(d10x.data[[ind]])+1,decreasing=T), nFeature_RNA = sort(Matrix:::colSums(d10x.data[[ind]]>0)+1,decreasing=T)) %>% ggplot() + 
+    scale_color_manual(values=c("grey50","red2","blue4"), labels=c("UMI_Background", "Features", "UMI_Cells"), name=NULL) +
+    ggtitle(paste("CellRanger filltered cells:",ids[ind],sep=" ")) + xlab("Barcodes") + ylab("counts (UMI or Features") + 
+    scale_x_continuous(trans = 'log2', breaks=xbreaks, labels = xlabels) + 
+    scale_y_continuous(trans = 'log2', breaks=ybreaks, labels = ylabels) +
+    geom_line(aes(x=index, y=nCount_RNA, color=index<=cr_filtered_cells[ind] , group=1), size=1.75) +
+    geom_line(aes(x=index, y=nFeature_RNA, color="Features", group=1), size=1.25)
+
+  return(pl1)
+}
+
+plot_cellranger_cells(1)
+plot_cellranger_cells(2)
+plot_cellranger_cells(3)
+plot_cellranger_cells(4)
+```
+
+
+### Create the Seurat object
+
+filter criteria: remove genes that do not occur in a minimum of 0 cells and remove cells that don't have a minimum of 200 features
+
+```{r create_seurat_object, warning=FALSE,error=FALSE, message=FALSE}
 experiment.data <- do.call("cbind", d10x.data)
 
 experiment.aggregate <- CreateSeuratObject(
   experiment.data,
-  project = "scRNA workshop",
-  min.cells = 10,
-  min.features = 200,
+  project = experiment_name,
+  min.cells = 0,
+  min.features = 300,
   names.field = 2,
   names.delim = "\\-")
+
+experiment.aggregate
+str(experiment.aggregate)
 ```
 
-### The percentage of reads that map to the mitochondrial genome
+## Load the Cell Ranger Matrix Data with multiple tables (hdf5 file only) and create the base Seurat object.
+```{r load_data_multi, warning=FALSE,error=FALSE, message=FALSE}
+normals <- c("10x_NormalPBMC_multi")
 
-* Low-quality / dying cells often exhibit extensive mitochondrial contamination.
-* We calculate mitochondrial QC metrics with the PercentageFeatureSet function, which calculates the percentage of counts originating from a set of features.
-* We use the set of all genes, in mouse these genes can be identified as those that begin with 'mt', in human data they begin with MT.
+d10x.metrics <- lapply(normals, function(i){
+  # remove _Counts is my names don't include them
+  metrics <- read.csv(file.path(dataset_loc,paste0(i,"/outs"),"metrics_summary.csv"), colClasses = "character")
+  metrics <- metrics[metrics$Library.Type == "Gene Expression",]
+  metrics.new <- metrics$Metric.Value
+  names(metrics.new) <- metrics$Metric.Name
+  metrics.new
+})
 
-```{r}
-experiment.aggregate$percent.mito <- PercentageFeatureSet(experiment.aggregate, pattern = "^mt-")
+normal.metrics <- do.call("rbind", d10x.metrics)
+rownames(normal.metrics) <- normals
+
+
+d10x.normal <- lapply(normals, function(i){
+  d10x <- Read10X_h5(file.path(dataset_loc,paste0(i,"/outs"),"raw_feature_bc_matrix.h5"))
+  colnames(d10x$`Gene Expression`) <- paste(sapply(strsplit(colnames(d10x$`Gene Expression`),split="-"),'[[',1L),i,sep="-")
+  colnames(d10x$`Antibody Capture`) <- paste(sapply(strsplit(colnames(d10x$`Antibody Capture`),split="-"),'[[',1L),i,sep="-")
+  d10x
+})
+names(d10x.normal) <- normals
+
+str(d10x.normal)
 ```
 
-### Lets create a fake "batch" metadata (used in part 3), Here we determine UCD_Adj_VitE is from one batch and UCD_Adj_VitE/UCD_Adj_VitE are from a second battch
+How does d10x.data differ from d10x.normal?
+
+```{r fig_barcode_umi_normal, warning=FALSE,error=FALSE, message=FALSE, fig.width=10}
+cr_filtered_cells <- as.numeric(gsub(",","",as.character(unlist(normal.metrics[, "Estimated number of cells" ]))))
+
+plot_cellranger_cells <- function(ind){
+  xbreaks = c(1,1e1,1e2,1e3,1e4,1e5,1e6)
+  xlabels = c("1","10","100","1000","10k","100K","1M")
+  ybreaks = c(1,2,5,10,20,50,100,200,500,1000,2000,5000,10000,20000,50000,100000,200000,500000,1000000)
+  ylabels = c("1","2","5","10","2","5","100","2","5","1000","2","5","10k","2","5","100K","2","5","1M")
+
+  pl1 <- data.frame(index=seq.int(1,ncol(d10x.normal[[ind]][["Gene Expression"]])), nCount_RNA = sort(Matrix:::colSums(d10x.normal[[ind]][["Gene Expression"]])+1,decreasing=T), nFeature_RNA = sort(Matrix:::colSums(d10x.normal[[ind]][["Gene Expression"]]>0)+1,decreasing=T)) %>% ggplot() + 
+    scale_color_manual(values=c("grey50","red2","blue4"), labels=c("UMI_Background", "Features", "UMI_Cells"), name=NULL) +
+    ggtitle(paste("CellRanger filltered cells:",ids[ind],sep=" ")) + xlab("Barcodes") + ylab("counts (UMI or Features") + 
+    scale_x_continuous(trans = 'log2', breaks=xbreaks, labels = xlabels) + 
+    scale_y_continuous(trans = 'log2', breaks=ybreaks, labels = ylabels) +
+    geom_line(aes(x=index, y=nCount_RNA, color=index<=cr_filtered_cells[ind] , group=1), size=1.75) +
+    geom_line(aes(x=index, y=nFeature_RNA, color="Features", group=1), size=1.25)
+
+  return(pl1)
+}
+
+plot_cellranger_cells(1)
+```
+
+
+### Create the Seurat object
+
+filter criteria: remove genes that do not occur in a minimum of 0 cells and remove cells that don't have a minimum of 200 features
+
+```{r create_seurat_object_normal, warning=FALSE,error=FALSE, message=FALSE}
+experiment.normal <- do.call("cbind", lapply(d10x.normal,"[[", "Gene Expression"))
+
+experiment.aggregate.normal <- CreateSeuratObject(
+  experiment.normal,
+  project = "Normals",
+  min.cells = 0,
+  min.features = 300,
+  names.field = 2,
+  names.delim = "\\-")
+
+experiment.aggregate
+str(experiment.aggregate)
+```
+
+
+### Lets create a metadata variable call batch, based on the sequencing run
 
 Here we build a new metadata variable 'batchid' which can be used to specify treatment groups.
-```{r}
+```{r add_mito, warning=FALSE,error=FALSE, message=FALSE}
 samplename = experiment.aggregate$orig.ident
 
 batchid = rep("Batch1",length(samplename))
-batchid[samplename %in% c("UCD_Adj_VitE")] = "Batch2"
+batchid[samplename %in% c("T021PBMC","T022PBMC")] = "Batch2"
 names(batchid) = colnames(experiment.aggregate)
 
 experiment.aggregate <- AddMetaData(
@@ -79,15 +243,26 @@ experiment.aggregate <- AddMetaData(
 table(experiment.aggregate$batchid)
 ```
 
+### The percentage of reads that map to the mitochondrial genome
+
+* Low-quality / dying cells often exhibit extensive mitochondrial contamination.
+* We calculate mitochondrial QC metrics with the PercentageFeatureSet function, which calculates the percentage of counts originating from a set of features.
+* We use the set of all genes, in mouse these genes can be identified as those that begin with 'mt', in human data they begin with MT.
+
+```{r explore, warning=FALSE,error=FALSE, message=FALSE}
+experiment.aggregate$percent.mito <- PercentageFeatureSet(experiment.aggregate, pattern = "^MT-")
+summary(experiment.aggregate$percent.mito)
+```
+
 ### Lets spend a little time getting to know the Seurat object.
 
 The Seurat object is the center of each single cell analysis. It stores __all__ information associated with the dataset, including data, annotations, analyses, etc. The R function slotNames can be used to view the slot names within an object.
 
-```{r}
+```{r explore2, warning=FALSE,error=FALSE, message=FALSE}
 slotNames(experiment.aggregate)
 ```
 
-```{r}
+```{r explore3, warning=FALSE,error=FALSE, message=FALSE}
 head(experiment.aggregate[[]])
 ```
 
@@ -97,21 +272,21 @@ head(experiment.aggregate[[]])
 2. What columns are available in meta.data?
 3. Look up the help documentation for subset?
 
-## Finally, save the original object, write out a tab-delimited table that could be read into excel, and view the object.
-```{r}
-write.table(as.matrix(experiment.data),"raw.datatable.txt",sep="\t",col.names=T,row.names=T)
-experiment.aggregate
 
-## Original dataset in Seurat class, with no filtering
+## Finally, save the original object and view the object.
+
+Original dataset in Seurat class, with no filtering
+```{r save, warning=FALSE,error=FALSE, message=FALSE}
 save(experiment.aggregate,file="original_seurat_object.RData")
+save(experiment.aggregate.normal,file="normal_seurat_object.RData")
 ```
 
 ## Get the next Rmd file
-```{r eval=FALSE}
-download.file("https://raw.githubusercontent.com/ucdavis-bioinformatics-training/2020-August-intro-scRNAseq/master/data_analysis/scRNA_Workshop-PART2.Rmd", "scRNA_Workshop-PART2.Rmd")
+```{r getnextfile, eval=FALSE}
+download.file("https://raw.githubusercontent.com/ucdavis-bioinformatics-training/2021-August-Single-Cell-RNA-Seq-Analysis/master/data_analysis/scRNA_Workshop-PART2.Rmd", "scRNA_Workshop-PART2.Rmd")
 ```
 
 ## Session Information
-```{r}
+```{r sessioinfo}
 sessionInfo()
 ```

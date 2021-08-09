@@ -6,17 +6,17 @@ output:
       keep_md: TRUE
 ---
 
-Reminder of samples
+# Setup additinal options
 
-* UCD_Adj_VitE
-* UCD_Supp_VitE
-* UCD_VitE_Def
 
 ## Load libraries
 
 ```r
 library(Seurat)
 library(ggplot2)
+library(limma)
+library(topGO)
+library(WGCNA)
 ```
 
 ## Load the Seurat object
@@ -28,217 +28,28 @@ experiment.merged
 
 ```
 ## An object of class Seurat 
-## 12811 features across 2681 samples within 1 assay 
-## Active assay: RNA (12811 features, 2000 variable features)
+## 36601 features across 4000 samples within 1 assay 
+## Active assay: RNA (36601 features, 3783 variable features)
 ##  3 dimensional reductions calculated: pca, tsne, umap
 ```
 
 ```r
-Idents(experiment.merged) <- "RNA_snn_res.0.5"
+Idents(experiment.merged) <- "RNA_snn_res.0.25"
 ```
-
-
-#0. Setup
-Load the final Seurat object, load libraries (also see additional required packages for each example)
-
-
-#1. DE With Single Cell Data Using Limma
-For differential expression using models more complex than those allowed by FindAllMarkers(), data from Seurat may be used in limma (https://www.bioconductor.org/packages/devel/bioc/vignettes/limma/inst/doc/usersguide.pdf)
-
-We illustrate by comparing sample 1 to sample 2 within cluster 0:
-
-```r
-library(limma)
-cluster0 <- subset(experiment.merged, idents = '0')
-expr <- as.matrix(GetAssayData(cluster0))
-
-# Filter out genes that are 0 for every cell in this cluster
-bad <- which(rowSums(expr) == 0)
-expr <- expr[-bad,]
-
-mm <- model.matrix(~0 + orig.ident, data = cluster0@meta.data)
-fit <- lmFit(expr, mm)  
-head(coef(fit)) # means in each sample for each gene
-```
-
-```
-##        orig.identUCD_Adj_VitE orig.identUCD_Supp_VitE orig.identUCD_VitE_Def
-## Xkr4               0.00000000              0.00000000             0.01244639
-## Sox17              0.00000000              0.01668876             0.00000000
-## Mrpl15             0.08176912              0.03552368             0.08691244
-## Lypla1             0.19102070              0.14361137             0.26607008
-## Tcea1              0.20114933              0.21041606             0.20030404
-## Rgs20              0.08977786              0.16701617             0.12833534
-```
-
-```r
-contr <- makeContrasts(orig.identUCD_Supp_VitE - orig.identUCD_Adj_VitE, levels = colnames(coef(fit)))
-tmp <- contrasts.fit(fit, contrasts = contr)
-tmp <- eBayes(tmp)
-topTable(tmp, sort.by = "P", n = 20) # top 20 DE genes
-```
-
-```
-##              logFC    AveExpr         t      P.Value    adj.P.Val        B
-## Rpl21   -0.7556351 2.18376607 -5.855721 8.788450e-09 0.0001042925 9.539390
-## Rpl23a  -0.6685951 2.20042706 -5.416089 9.625031e-08 0.0005711012 7.365993
-## Pcp4    -0.7945738 1.97307900 -5.080323 5.394231e-07 0.0021337779 5.806565
-## Rpl17   -0.6385737 2.03095291 -4.897874 1.324008e-06 0.0035478412 4.996517
-## Tmsb10  -0.5075879 3.39483016 -4.872780 1.494835e-06 0.0035478412 4.887183
-## Rpl24   -0.5884927 2.10921998 -4.770591 2.437077e-06 0.0048201321 4.447182
-## H3f3b   -0.5739244 2.28377746 -4.559194 6.516427e-06 0.0098059796 3.563800
-## Rpl39   -0.5473089 2.24828560 -4.556050 6.610587e-06 0.0098059796 3.550936
-## Rps15   -0.5665492 1.98366043 -4.336666 1.762107e-05 0.0217259999 2.673438
-## Ndufa3  -0.4826286 0.75315056 -4.323873 1.863444e-05 0.0217259999 2.623495
-## Rps8    -0.5285119 2.56740433 -4.306059 2.013870e-05 0.0217259999 2.554177
-## Rpl32   -0.5363837 2.48366395 -4.272626 2.328052e-05 0.0230224951 2.424792
-## Zfp467  -0.2490624 0.16470870 -4.253390 2.529475e-05 0.0230902191 2.350772
-## Tshz2   -0.5320498 2.34028483 -4.148785 3.950113e-05 0.0318459666 1.953659
-## Tmsb4x  -0.3725442 3.22438235 -4.144250 4.026341e-05 0.0318459666 1.936650
-## Alkal2  -0.1394787 0.05510728 -4.128964 4.293718e-05 0.0318459666 1.879445
-## Dbpht2  -0.4226453 0.63694021 -3.965965 8.417668e-05 0.0582822357 1.281665
-## Rps24   -0.5042936 1.54382120 -3.949370 9.003315e-05 0.0582822357 1.222063
-## Rpl10   -0.4695677 2.24688056 -3.940514 9.331444e-05 0.0582822357 1.190352
-## S100a10 -0.5110197 1.18692449 -3.917697 1.022983e-04 0.0606987101 1.108955
-```
-* logFC: log2 fold change (UCD_Supp_VitE/UCD_Adj_VitE)
-* AveExpr: Average expression, in log2 counts per million, across all cells included in analysis (i.e. those in cluster 0)
-* t: t-statistic, i.e. logFC divided by its standard error
-* P.Value: Raw p-value from test that logFC differs from 0
-* adj.P.Val: Benjamini-Hochberg false discovery rate adjusted p-value
-
-The limma vignette linked above gives more detail on model specification.
 
 # 2. Gene Ontology (GO) Enrichment of Genes Expressed in a Cluster
 
 ```r
-library(topGO)
-```
-
-```
-## Loading required package: BiocGenerics
-```
-
-```
-## Loading required package: parallel
-```
-
-```
-## 
-## Attaching package: 'BiocGenerics'
-```
-
-```
-## The following objects are masked from 'package:parallel':
-## 
-##     clusterApply, clusterApplyLB, clusterCall, clusterEvalQ, clusterExport, clusterMap, parApply, parCapply, parLapply, parLapplyLB, parRapply, parSapply, parSapplyLB
-```
-
-```
-## The following object is masked from 'package:limma':
-## 
-##     plotMA
-```
-
-```
-## The following objects are masked from 'package:stats':
-## 
-##     IQR, mad, sd, var, xtabs
-```
-
-```
-## The following objects are masked from 'package:base':
-## 
-##     anyDuplicated, append, as.data.frame, basename, cbind, colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find, get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply, match, mget, order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank, rbind, Reduce, rownames, sapply, setdiff, sort, table, tapply, union, unique, unsplit, which, which.max, which.min
-```
-
-```
-## Loading required package: graph
-```
-
-```
-## Loading required package: Biobase
-```
-
-```
-## Welcome to Bioconductor
-## 
-##     Vignettes contain introductory material; view with 'browseVignettes()'. To cite Bioconductor, see 'citation("Biobase")', and for packages 'citation("pkgname")'.
-```
-
-```
-## Loading required package: GO.db
-```
-
-```
-## Loading required package: AnnotationDbi
-```
-
-```
-## Loading required package: stats4
-```
-
-```
-## Loading required package: IRanges
-```
-
-```
-## Loading required package: S4Vectors
-```
-
-```
-## 
-## Attaching package: 'S4Vectors'
-```
-
-```
-## The following object is masked from 'package:base':
-## 
-##     expand.grid
-```
-
-```
-## 
-```
-
-```
-## Loading required package: SparseM
-```
-
-```
-## 
-## Attaching package: 'SparseM'
-```
-
-```
-## The following object is masked from 'package:base':
-## 
-##     backsolve
-```
-
-```
-## 
-## groupGOTerms: 	GOBPTerm, GOMFTerm, GOCCTerm environments built.
-```
-
-```
-## 
-## Attaching package: 'topGO'
-```
-
-```
-## The following object is masked from 'package:IRanges':
-## 
-##     members
-```
-
-```r
-# install org.Mm.eg.db from Bioconductor if not already installed (for mouse only)
+# install org.Hs.eg.db from Bioconductor if not already installed (for mouse only)
 cluster0 <- subset(experiment.merged, idents = '0')
 expr <- as.matrix(GetAssayData(cluster0))
+# Filter out genes that are 0 for every cell in this cluster
+bad <- which(rowSums(expr) == 0)
+expr <- expr[-bad,]
+
 # Select genes that are expressed > 0 in at least 75% of cells (somewhat arbitrary definition)
 n.gt.0 <- apply(expr, 1, function(x)length(which(x > 0)))
-expressed.genes <- rownames(expr)[which(n.gt.0/ncol(expr) >= 0.75)]
+expressed.genes <- rownames(expr)[which(n.gt.0/ncol(expr) >= 0.5)]
 all.genes <- rownames(expr)
 
 # define geneList as 1 if gene is in expressed.genes, 0 otherwise
@@ -250,180 +61,34 @@ names(geneList) <- all.genes
 		ontology = "BP", # use biological process ontology
 		allGenes = geneList,
 		geneSelectionFun = function(x)(x == 1),
-              annot = annFUN.org, mapping = "org.Mm.eg.db", ID = "symbol")
-```
-
-```
-## 
-## Building most specific GOs .....
-```
-
-```
-## Loading required package: org.Mm.eg.db
-```
-
-```
-## 
-```
-
-```
-## 	( 10610 GO terms found. )
-```
-
-```
-## 
-## Build GO DAG topology ..........
-```
-
-```
-## 	( 14634 GO terms and 34710 relations. )
-```
-
-```
-## 
-## Annotating nodes ...............
-```
-
-```
-## 	( 11709 genes annotated to the GO terms. )
-```
-
-```r
+              annot = annFUN.org, mapping = "org.Hs.eg.db", ID = "symbol")
 # Test for enrichment using Fisher's Exact Test
 	resultFisher <- runTest(GOdata, algorithm = "elim", statistic = "fisher")
-```
-
-```
-## 
-## 			 -- Elim Algorithm -- 
-## 
-## 		 the algorithm is scoring 2871 nontrivial nodes
-## 		 parameters: 
-## 			 test statistic: fisher
-## 			 cutOff: 0.01
-```
-
-```
-## 
-## 	 Level 19:	1 nodes to be scored	(0 eliminated genes)
-```
-
-```
-## 
-## 	 Level 18:	1 nodes to be scored	(0 eliminated genes)
-```
-
-```
-## 
-## 	 Level 17:	1 nodes to be scored	(0 eliminated genes)
-```
-
-```
-## 
-## 	 Level 16:	6 nodes to be scored	(0 eliminated genes)
-```
-
-```
-## 
-## 	 Level 15:	16 nodes to be scored	(0 eliminated genes)
-```
-
-```
-## 
-## 	 Level 14:	32 nodes to be scored	(24 eliminated genes)
-```
-
-```
-## 
-## 	 Level 13:	72 nodes to be scored	(31 eliminated genes)
-```
-
-```
-## 
-## 	 Level 12:	108 nodes to be scored	(429 eliminated genes)
-```
-
-```
-## 
-## 	 Level 11:	178 nodes to be scored	(762 eliminated genes)
-```
-
-```
-## 
-## 	 Level 10:	255 nodes to be scored	(790 eliminated genes)
-```
-
-```
-## 
-## 	 Level 9:	324 nodes to be scored	(1362 eliminated genes)
-```
-
-```
-## 
-## 	 Level 8:	377 nodes to be scored	(1501 eliminated genes)
-```
-
-```
-## 
-## 	 Level 7:	453 nodes to be scored	(1913 eliminated genes)
-```
-
-```
-## 
-## 	 Level 6:	442 nodes to be scored	(2135 eliminated genes)
-```
-
-```
-## 
-## 	 Level 5:	323 nodes to be scored	(2181 eliminated genes)
-```
-
-```
-## 
-## 	 Level 4:	180 nodes to be scored	(2184 eliminated genes)
-```
-
-```
-## 
-## 	 Level 3:	83 nodes to be scored	(2794 eliminated genes)
-```
-
-```
-## 
-## 	 Level 2:	18 nodes to be scored	(2794 eliminated genes)
-```
-
-```
-## 
-## 	 Level 1:	1 nodes to be scored	(2794 eliminated genes)
-```
-
-```r
 	GenTable(GOdata, Fisher = resultFisher, topNodes = 20, numChar = 60)
 ```
 
 ```
 ##         GO.ID                                                            Term Annotated Significant Expected  Fisher
-## 1  GO:0002181                                         cytoplasmic translation        79          19     0.92 2.7e-20
-## 2  GO:0006412                                                     translation       518          50     6.06 3.5e-18
-## 3  GO:0000028                                ribosomal small subunit assembly        18           7     0.21 7.4e-10
-## 4  GO:0000027                                ribosomal large subunit assembly        29           7     0.34 3.2e-08
-## 5  GO:0097214          positive regulation of lysosomal membrane permeability         2           2     0.02 0.00014
-## 6  GO:0006880                          intracellular sequestering of iron ion         2           2     0.02 0.00014
-## 7  GO:0002227                                innate immune response in mucosa         2           2     0.02 0.00014
-## 8  GO:0000462 maturation of SSU-rRNA from tricistronic rRNA transcript (SS...        30           4     0.35 0.00039
-## 9  GO:0061844 antimicrobial humoral immune response mediated by antimicrob...        14           3     0.16 0.00052
-## 10 GO:0016198                                   axon choice point recognition         4           2     0.05 0.00080
-## 11 GO:0071635 negative regulation of transforming growth factor beta produ...         5           2     0.06 0.00133
-## 12 GO:0006605                                               protein targeting       230           9     2.69 0.00151
-## 13 GO:0002679                  respiratory burst involved in defense response         6           2     0.07 0.00198
-## 14 GO:1902255 positive regulation of intrinsic apoptotic signaling pathway...         6           2     0.07 0.00198
-## 15 GO:1905323                          telomerase holoenzyme complex assembly         6           2     0.07 0.00198
-## 16 GO:0007409                                                    axonogenesis       357          13     4.18 0.00256
-## 17 GO:1904667        negative regulation of ubiquitin protein ligase activity         7           2     0.08 0.00275
-## 18 GO:0071637         regulation of monocyte chemotactic protein-1 production         7           2     0.08 0.00275
-## 19 GO:0019731                                  antibacterial humoral response         7           2     0.08 0.00275
-## 20 GO:0007612                                                        learning       124           6     1.45 0.00332
+## 1  GO:0006614     SRP-dependent cotranslational protein targeting to membrane        95          80     5.35 < 1e-30
+## 2  GO:0006413                                        translational initiation       184         101    10.36 < 1e-30
+## 3  GO:0000184 nuclear-transcribed mRNA catabolic process, nonsense-mediate...       119          81     6.70 < 1e-30
+## 4  GO:0019083                                             viral transcription       173          81     9.74 < 1e-30
+## 5  GO:0002181                                         cytoplasmic translation        92          49     5.18 1.0e-28
+## 6  GO:0035722                       interleukin-12-mediated signaling pathway        43          20     2.42 2.2e-14
+## 7  GO:0060337                             type I interferon signaling pathway        74          24     4.17 8.3e-13
+## 8  GO:0006123        mitochondrial electron transport, cytochrome c to oxygen        15          10     0.84 6.9e-10
+## 9  GO:0016032                                                   viral process       744         167    41.88 2.4e-09
+## 10 GO:0042776            mitochondrial ATP synthesis coupled proton transport        21          11     1.18 3.5e-09
+## 11 GO:0000027                                ribosomal large subunit assembly        27          12     1.52 7.3e-09
+## 12 GO:0000381        regulation of alternative mRNA splicing, via spliceosome        53          16     2.98 1.8e-08
+## 13 GO:0043066                        negative regulation of apoptotic process       621          78    34.96 6.0e-08
+## 14 GO:0043312                                        neutrophil degranulation       421          52    23.70 6.4e-08
+## 15 GO:0002479 antigen processing and presentation of exogenous peptide ant...        71          17     4.00 2.8e-07
+## 16 GO:0006364                                                 rRNA processing       206          36    11.60 3.9e-07
+## 17 GO:0000398                                  mRNA splicing, via spliceosome       312          54    17.56 4.6e-07
+## 18 GO:0002480 antigen processing and presentation of exogenous peptide ant...         8           6     0.45 7.9e-07
+## 19 GO:0001732         formation of cytoplasmic translation initiation complex        16           8     0.90 8.3e-07
+## 20 GO:0000028                                ribosomal small subunit assembly        16           8     0.90 8.3e-07
 ```
 * Annotated: number of genes (out of all.genes) that are annotated with that GO term
 * Significant: number of genes that are annotated with that GO term and meet our criteria for "expressed"
@@ -433,52 +98,6 @@ names(geneList) <- all.genes
 #3. Weighted Gene Co-Expression Network Analysis (WGCNA)
 WGCNA identifies groups of genes ("modules") with correlated expression.
 WARNING: TAKES A LONG TIME TO RUN
-
-```r
-library(WGCNA)
-```
-
-```
-## Loading required package: dynamicTreeCut
-```
-
-```
-## Loading required package: fastcluster
-```
-
-```
-## 
-## Attaching package: 'fastcluster'
-```
-
-```
-## The following object is masked from 'package:stats':
-## 
-##     hclust
-```
-
-```
-## 
-## Attaching package: 'WGCNA'
-```
-
-```
-## The following object is masked from 'package:IRanges':
-## 
-##     cor
-```
-
-```
-## The following object is masked from 'package:S4Vectors':
-## 
-##     cor
-```
-
-```
-## The following object is masked from 'package:stats':
-## 
-##     cor
-```
 
 ```r
 options(stringsAsFactors = F)
@@ -511,9 +130,10 @@ net <- blockwiseModules(datExpr, power = 10,
 ##  ....detecting modules..
 ##  ....calculating module eigengenes..
 ##  ....checking kME in modules..
-##      ..removing 67 genes from module 1 because their KME is too low.
-##      ..removing 43 genes from module 3 because their KME is too low.
-##      ..removing 2 genes from module 12 because their KME is too low.
+##      ..removing 599 genes from module 1 because their KME is too low.
+##      ..removing 65 genes from module 2 because their KME is too low.
+##      ..removing 48 genes from module 4 because their KME is too low.
+##      ..removing 7 genes from module 6 because their KME is too low.
 ##  ..merging modules that are too close..
 ##      mergeCloseModules: Merging modules whose distance is less than 0.15
 ##        Calculating new MEs...
@@ -525,8 +145,8 @@ table(net$colors)
 
 ```
 ## 
-##     black      blue     brown     green      grey       red turquoise    yellow 
-##        11        80        21        12      1536        11       312        17
+##      blue     brown      grey turquoise    yellow 
+##        71        46      3463       192        11
 ```
 
 ```r
@@ -539,7 +159,7 @@ dendroLabels = FALSE, hang = 0.03,
 addGuide = TRUE, guideHang = 0.05)
 ```
 
-![](scRNA_Workshop-PART6_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+![](scRNA_Workshop-PART6_files/figure-html/WGCNA-1.png)<!-- -->
 Genes in grey module are unclustered.
 
 What genes are in the "blue" module?
@@ -549,9 +169,8 @@ colnames(datExpr)[net$colors == "blue"]
 ```
 
 ```
-##  [1] "Lxn"           "Txn1"          "Grik1"         "Fez1"          "Tmem45b"       "Synpr"         "Tceal9"        "Ppp1r1a"       "Rgs10"         "Nrn1"          "Fxyd2"         "Ostf1"         "Lix1"          "Sncb"          "Paqr5"         "Bex3"          "Anxa5"         "Gfra2"         "Scg3"          "Ppm1j"         "Kcnab1"        "Kcnip4"        "Cadm1"         "Isl2"          "Pla2g7"        "Tppp3"         "Rgs4"         
-## [28] "Tmsb4x"        "Unc119"        "Pmm1"          "Ccdc68"        "Rnf7"          "Prr13"         "Rsu1"          "Pmp22"         "Acpp"          "Kcnip2"        "Cdk15"         "Mrps6"         "Ebp"           "Hexb"          "Cdh11"         "Dapk2"         "Ano3"          "Pde6d"         "Snx7"          "Dtnbp1"        "Tubb2b"        "Nr2c2ap"       "Phf24"         "Rcan2"         "Fam241b"       "Pmvk"          "Slc25a4"      
-## [55] "Zfhx3"         "Dgkz"          "Ndufv1"        "Ptrh1"         "1700037H04Rik" "Kif5b"         "Sae1"          "Sri"           "Cpne3"         "Dgcr6"         "Cisd3"         "Syt7"          "Lhfpl3"        "Dda1"          "Ppp1ca"        "Glrx3"         "Stoml1"        "Plagl1"        "Lbh"           "Degs1"         "AI413582"      "Car10"         "Tlx2"          "Parm1"         "March11"       "Cpe"
+##  [1] "ISG15"    "EFHD2"    "SH3BGRL3" "FGR"      "IFI6"     "GNG5"     "S100A10"  "S100A11"  "S100A6"   "S100A4"   "TPM3"     "FCER1G"   "ARPC5"    "H3F3A"    "ID2"      "PLEK"     "TMSB10"   "VAMP8"    "DBI"      "RHOA"     "PLAC8"    "ATP6V0E1" "PRELID1"  "CLIC1"    "PSMB9"    "ACTB"     "RAC1"     "ARPC1B"   "ATP5MF"   "GNB2"     "LY6E"     "SEC61B"   "MAP3K8"   "SRGN"     "IFITM2"   "IFITM3"   "POLR2L"   "CTSD"     "RHOG"     "UBE2L6"  
+## [41] "COX8A"    "CFL1"     "GSTP1"    "CARD16"   "GAPDH"    "TPI1"     "BLOC1S1"  "CD63"     "MYL6"     "ARPC3"    "PSME2"    "SERF2"    "ANXA2"    "ELOB"     "MT2A"     "PSMB10"   "CYBA"     "PFN1"     "GABARAP"  "ACTG1"    "UQCR11"   "OAZ1"     "WDR83OS"  "BST2"     "COX6B1"   "TYROBP"   "EMP3"     "ATP5F1E"  "PSMA7"    "ITGB2"    "LGALS1"
 ```
 
 Each cluster is represented by a summary "eigengene".
@@ -563,7 +182,15 @@ f <- function(module){
   means <- tapply(eigengene, Idents(experiment.merged), mean, na.rm = T)
   return(means)
 }
-modules <- c("blue", "brown", "green", "turquoise", "yellow")
+unique(net$colors)
+```
+
+```
+## [1] "grey"      "blue"      "turquoise" "brown"     "yellow"
+```
+
+```r
+modules <- c("blue", "brown", "turquoise", "yellow")
 plotdat <- sapply(modules, f)
 matplot(plotdat, col = modules, type = "l", lwd = 2, xaxt = "n", xlab = "Seurat Cluster",
         ylab = "WGCNA Module Eigengene")
@@ -571,7 +198,7 @@ axis(1, at = 1:19, labels = 0:18, cex.axis = 0.8)
 matpoints(plotdat, col = modules, pch = 21)
 ```
 
-![](scRNA_Workshop-PART6_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+![](scRNA_Workshop-PART6_files/figure-html/wgcna3-1.png)<!-- -->
 
 Can also plot the module onto the tsne plot
 
@@ -582,7 +209,7 @@ experiment.merged$blue.eigengene <- blue.eigengene
 FeaturePlot(experiment.merged, features = "blue.eigengene", cols = c("grey", "blue"))
 ```
 
-![](scRNA_Workshop-PART6_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+![](scRNA_Workshop-PART6_files/figure-html/unnamed-chunk-1-1.png)<!-- -->
 
 
 ## Session Information
@@ -592,9 +219,9 @@ sessionInfo()
 ```
 
 ```
-## R version 4.0.0 (2020-04-24)
+## R version 4.0.3 (2020-10-10)
 ## Platform: x86_64-apple-darwin17.0 (64-bit)
-## Running under: macOS Catalina 10.15.4
+## Running under: macOS Big Sur 10.16
 ## 
 ## Matrix products: default
 ## BLAS:   /Library/Frameworks/R.framework/Versions/4.0/Resources/lib/libRblas.dylib
@@ -604,16 +231,17 @@ sessionInfo()
 ## [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
 ## 
 ## attached base packages:
-## [1] stats4    parallel  stats     graphics  grDevices datasets  utils     methods   base     
+## [1] stats4    parallel  stats     graphics  grDevices utils     datasets  methods   base     
 ## 
 ## other attached packages:
-##  [1] WGCNA_1.69            fastcluster_1.1.25    dynamicTreeCut_1.63-1 org.Mm.eg.db_3.11.1   topGO_2.40.0          SparseM_1.78          GO.db_3.11.1          AnnotationDbi_1.50.0  IRanges_2.22.1        S4Vectors_0.26.1      Biobase_2.48.0        graph_1.66.0          BiocGenerics_0.34.0   limma_3.44.1          ggplot2_3.3.0         Seurat_3.1.5         
+##  [1] org.Hs.eg.db_3.11.4   WGCNA_1.70-3          fastcluster_1.1.25    dynamicTreeCut_1.63-1 topGO_2.40.0          SparseM_1.81          GO.db_3.11.4          AnnotationDbi_1.50.3  IRanges_2.22.2        S4Vectors_0.26.1      Biobase_2.48.0        graph_1.66.0          BiocGenerics_0.34.0   limma_3.44.3          ggplot2_3.3.3         SeuratObject_4.0.0    Seurat_4.0.1         
 ## 
 ## loaded via a namespace (and not attached):
-##   [1] Rtsne_0.15            colorspace_1.4-1      ellipsis_0.3.1        ggridges_0.5.2        htmlTable_1.13.3      base64enc_0.1-3       rstudioapi_0.11       farver_2.0.3          leiden_0.3.3          listenv_0.8.0         ggrepel_0.8.2         bit64_0.9-7           codetools_0.2-16      splines_4.0.0         doParallel_1.0.15     impute_1.62.0         knitr_1.28            Formula_1.2-3         jsonlite_1.6.1        ica_1.0-2            
-##  [21] cluster_2.1.0         png_0.1-7             uwot_0.1.8            sctransform_0.2.1     BiocManager_1.30.10   compiler_4.0.0        httr_1.4.1            backports_1.1.7       assertthat_0.2.1      Matrix_1.2-18         lazyeval_0.2.2        acepack_1.4.1         htmltools_0.4.0       tools_4.0.0           rsvd_1.0.3            igraph_1.2.5          gtable_0.3.0          glue_1.4.1            RANN_2.6.1            reshape2_1.4.4       
-##  [41] dplyr_0.8.5           Rcpp_1.0.4.6          vctrs_0.3.0           preprocessCore_1.50.0 ape_5.3               nlme_3.1-147          iterators_1.0.12      lmtest_0.9-37         xfun_0.13             stringr_1.4.0         globals_0.12.5        lifecycle_0.2.0       irlba_2.3.3           renv_0.10.0           future_1.17.0         MASS_7.3-51.5         zoo_1.8-8             scales_1.1.1          RColorBrewer_1.1-2    yaml_2.2.1           
-##  [61] memoise_1.1.0         reticulate_1.15       pbapply_1.4-2         gridExtra_2.3         rpart_4.1-15          latticeExtra_0.6-29   stringi_1.4.6         RSQLite_2.2.0         foreach_1.5.0         checkmate_2.0.0       rlang_0.4.6           pkgconfig_2.0.3       matrixStats_0.56.0    evaluate_0.14         lattice_0.20-41       ROCR_1.0-11           purrr_0.3.4           labeling_0.3          patchwork_1.0.0       htmlwidgets_1.5.1    
-##  [81] cowplot_1.0.0         bit_1.1-15.2          tidyselect_1.1.0      RcppAnnoy_0.0.16      plyr_1.8.6            magrittr_1.5          R6_2.4.1              Hmisc_4.4-0           DBI_1.1.0             foreign_0.8-78        pillar_1.4.4          withr_2.2.0           fitdistrplus_1.1-1    nnet_7.3-13           survival_3.1-12       tibble_3.0.1          future.apply_1.5.0    tsne_0.1-3            crayon_1.3.4          KernSmooth_2.23-16   
-## [101] plotly_4.9.2.1        rmarkdown_2.1         jpeg_0.1-8.1          grid_4.0.0            data.table_1.12.8     blob_1.2.1            digest_0.6.25         tidyr_1.0.3           munsell_0.5.0         viridisLite_0.3.0
+##   [1] backports_1.2.1       Hmisc_4.5-0           plyr_1.8.6            igraph_1.2.6          lazyeval_0.2.2        splines_4.0.3         listenv_0.8.0         scattermore_0.7       digest_0.6.27         foreach_1.5.1         htmltools_0.5.1.1     fansi_0.4.2           checkmate_2.0.0       magrittr_2.0.1        memoise_2.0.0         tensor_1.5            cluster_2.1.1         doParallel_1.0.16     ROCR_1.0-11           globals_0.14.0       
+##  [21] matrixStats_0.58.0    spatstat.sparse_2.0-0 jpeg_0.1-8.1          colorspace_2.0-0      blob_1.2.1            ggrepel_0.9.1         xfun_0.22             dplyr_1.0.5           crayon_1.4.1          jsonlite_1.7.2        spatstat.data_2.1-0   impute_1.62.0         survival_3.2-10       zoo_1.8-9             iterators_1.0.13      glue_1.4.2            polyclip_1.10-0       gtable_0.3.0          leiden_0.3.7          future.apply_1.7.0   
+##  [41] abind_1.4-5           scales_1.1.1          DBI_1.1.1             miniUI_0.1.1.1        Rcpp_1.0.6            htmlTable_2.1.0       viridisLite_0.3.0     xtable_1.8-4          reticulate_1.18       spatstat.core_2.0-0   foreign_0.8-81        bit_4.0.4             preprocessCore_1.50.0 Formula_1.2-4         htmlwidgets_1.5.3     httr_1.4.2            RColorBrewer_1.1-2    ellipsis_0.3.1        ica_1.0-2             farver_2.1.0         
+##  [61] pkgconfig_2.0.3       nnet_7.3-15           sass_0.3.1            uwot_0.1.10           deldir_0.2-10         utf8_1.2.1            labeling_0.4.2        tidyselect_1.1.0      rlang_0.4.10          reshape2_1.4.4        later_1.1.0.1         munsell_0.5.0         tools_4.0.3           cachem_1.0.4          generics_0.1.0        RSQLite_2.2.4         ggridges_0.5.3        evaluate_0.14         stringr_1.4.0         fastmap_1.1.0        
+##  [81] yaml_2.2.1            goftest_1.2-2         knitr_1.31            bit64_4.0.5           fitdistrplus_1.1-3    purrr_0.3.4           RANN_2.6.1            pbapply_1.4-3         future_1.21.0         nlme_3.1-152          mime_0.10             rstudioapi_0.13       compiler_4.0.3        plotly_4.9.3          png_0.1-7             spatstat.utils_2.1-0  tibble_3.1.0          bslib_0.2.4           stringi_1.5.3         highr_0.8            
+## [101] lattice_0.20-41       Matrix_1.3-2          vctrs_0.3.6           pillar_1.5.1          lifecycle_1.0.0       spatstat.geom_2.0-1   lmtest_0.9-38         jquerylib_0.1.3       RcppAnnoy_0.0.18      data.table_1.14.0     cowplot_1.1.1         irlba_2.3.3           httpuv_1.5.5          patchwork_1.1.1       latticeExtra_0.6-29   R6_2.5.0              promises_1.2.0.1      KernSmooth_2.23-18    gridExtra_2.3         parallelly_1.24.0    
+## [121] codetools_0.2-18      MASS_7.3-53.1         assertthat_0.2.1      withr_2.4.1           sctransform_0.3.2     mgcv_1.8-34           grid_4.0.3            rpart_4.1-15          tidyr_1.1.3           rmarkdown_2.7         Rtsne_0.15            base64enc_0.1-3       shiny_1.6.0
 ```

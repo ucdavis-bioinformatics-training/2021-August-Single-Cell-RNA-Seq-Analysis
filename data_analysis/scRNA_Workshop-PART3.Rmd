@@ -1,25 +1,52 @@
 ---
-title: "Single Cell RNAseq Part 3"
-author: "Bioinformatics Core"
+title: "Introduction to Single Cell RNAseq Part 3"
+author: "UCD Bioinformatics Core"
 output:
     html_document:
       keep_md: TRUE
 ---
+
+
+Last Updated: March 24 2021, 11am
+
+# Part 3: Batch Correction Excercise
+
+
 ## Load libraries
-```{r, warning=FALSE,error=FALSE,message=FALSE}
+```{r libraries, warning=FALSE,error=FALSE,message=FALSE}
 library(Seurat)
 ```
 
-## Load the Seurat object
-```{r}
+## Load the Seurat object from the prior excercise, and **create a batch effect**
+
+```{r load_rdata, warning=FALSE,error=FALSE,message=FALSE}
 load(file="pre_sample_corrected.RData")
 experiment.aggregate
 experiment.test <- experiment.aggregate
+VariableFeatures(experiment.test) <- rownames(experiment.test)
 set.seed(12345)
-rand.genes <- sample(1:nrow(experiment.test), 500,replace = F)
+
+
+samplename = experiment.aggregate$orig.ident
+rand.cells <- sample(1:ncol(experiment.test), 2000,replace = F)
+batchid = rep("Example_Batch1",length(samplename))
+batchid[rand.cells] = "Example_Batch2"
+names(batchid) = colnames(experiment.aggregate)
+
+experiment.test <- AddMetaData(
+  object = experiment.test,
+  metadata = batchid,
+  col.name = "example_batchid")
+
+table(experiment.test$example_batchid)
+
 mat <- as.matrix(GetAssayData(experiment.test, slot="data"))
-mat[rand.genes,experiment.test$batchid=="Batch2"] <- mat[rand.genes,experiment.test$batchid=="Batch2"] + 0.22
+
+rand.genes <- sample(VariableFeatures(experiment.test), 500,replace = F)
+
+mat[rand.genes,experiment.test$example_batchid=="Example_Batch2"] <- mat[rand.genes,experiment.test$example_batchid=="Example_Batch2"] + 0.22
 experiment.test = SetAssayData(experiment.test, slot="data", new.data= mat )
+rm(mat)
 ```
 
 ## Exploring Batch effects, none, Seurat [vars.to.regress]
@@ -29,62 +56,69 @@ First lets view the data without any corrections
 ## PCA in prep for tSNE
 
 ScaleData - Scales and centers genes in the dataset.
-```{r}
+```{r scaledata_help, warning=FALSE,error=FALSE,message=FALSE, eval=FALSE}
 ?ScaleData
+```
+
+
+```{r scale_data_no_adjustment, warning=FALSE,error=FALSE,message=FALSE}
 experiment.test.noc <- ScaleData(object = experiment.test)
 ```
 
 ### Run PCA
-```{r, fig.align="center", fig.caption="Uncorrected PCA plot"}
+```{r pca_none, warning=FALSE,error=FALSE,message=FALSE, fig.align="center", fig.caption="Uncorrected PCA plot"}
 experiment.test.noc <- RunPCA(object = experiment.test.noc)
-DimPlot(object = experiment.test.noc, group.by = "batchid", reduction = "pca")
-DimPlot(object = experiment.test.noc, group.by = "batchid", dims = c(2,3), reduction = "pca")
+DimPlot(object = experiment.test.noc, group.by = "example_batchid", reduction = "pca")
+DimPlot(object = experiment.test.noc, group.by = "example_batchid", dims = c(2,3), reduction = "pca")
 ```
 
 PCA Elbow plot to determine how many principal components to use in downstream analyses.  Components after the "elbow" in the plot generally explain little additional variability in the data.
 
-```{r}
+```{r pca_elbow, warning=FALSE,error=FALSE,message=FALSE}
 ElbowPlot(experiment.test.noc)
 ```
 
 We use 10 components in downstream analyses. Using more components more closely approximates the full data set but increases run time.
 
 ### TSNE Plot
-```{r, fig.align="center", fig.caption="Uncorrected TSNE plot"}
+```{r tsne, warning=FALSE,error=FALSE,message=FALSE, fig.align="center", fig.caption="Uncorrected TSNE plot"}
 pcs.use <- 10
 experiment.test.noc <- RunTSNE(object = experiment.test.noc, dims = 1:pcs.use)
-DimPlot(object = experiment.test.noc,  group.by = "batchid")
-
+DimPlot(object = experiment.test.noc,  group.by = "example_batchid")
 ```
 
 ## Correct for sample to sample differences (seurat)
 
 Use vars.to.regress to correct for the sample to sample differences and percent mitochondria
-```{r, fig.align="center", fig.caption="Corrected PCA Plot"}
+```{r scaledata_regress, warning=FALSE,error=FALSE,message=FALSE, fig.align="center", fig.caption="Corrected PCA Plot"}
 experiment.test.regress <- ScaleData(object = experiment.test,
-                    vars.to.regress = c("batchid"), model.use = "linear")
+                    vars.to.regress = c("example_batchid"), model.use = "linear")
 
-experiment.test.regress <- RunPCA(object =experiment.test.regress)
+experiment.test.regress <- RunPCA(object =experiment.test.regress,features=rownames(experiment.test.noc))
 
-DimPlot(object = experiment.test.regress, group.by = "batchid", reduction = "pca")
+DimPlot(object = experiment.test.regress, group.by = "example_batchid", reduction = "pca")
 ```
 
 ### Corrected TSNE Plot
-```{r, fig.align="center", fig.caption="Corrected TSNE Plot"}
-experiment.test.regress <- RunTSNE(object = experiment.test.regress, dims.use = 1:pcs.use)
-DimPlot(object = experiment.test.regress, group.by = "batchid", reduction = "tsne")
+```{r tsne_2, warning=FALSE,error=FALSE,message=FALSE, fig.align="center", fig.caption="Corrected TSNE Plot"}
+experiment.test.regress <- RunTSNE(object = experiment.test.regress, dims.use = 1:50)
+DimPlot(object = experiment.test.regress, group.by = "example_batchid", reduction = "tsne")
 ```
 
 #### Question(s)
 
 1. Try a couple of PCA cutoffs (low and high) and compare the TSNE plots from the different methods.  Do they look meaningfully different?
 
+### Excercise
+
+Now go back to the original data without having been modified and see if a "batch effect" exists between the two actual batches
+
 ## Get the next Rmd file
-```{r, eval=FALSE}
-download.file("https://raw.githubusercontent.com/ucdavis-bioinformatics-training/2020-August-intro-scRNAseq/master/data_analysis/scRNA_Workshop-PART4.Rmd", "scRNA_Workshop-PART4.Rmd")
+```{r get_next_rmd, warning=FALSE,error=FALSE,message=FALSE, eval=FALSE}
+download.file("https://raw.githubusercontent.com/ucdavis-bioinformatics-training/2021-August-Single-Cell-RNA-Seq-Analysis/master/data_analysis/scRNA_Workshop-PART4.Rmd", "scRNA_Workshop-PART4.Rmd")
 ```
 
 ## Session Information
-```{r}
+```{r sessioninfo, warning=FALSE,error=FALSE,message=FALSE}
 sessionInfo()
 ```

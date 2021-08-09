@@ -6,70 +6,39 @@ output:
       keep_md: TRUE
 ---
 
-Reminder of samples
-
-* UCD_Adj_VitE
-* UCD_Supp_VitE
-* UCD_VitE_Def
-
-## Load libraries
-```{r, warning=FALSE,error=FALSE,message=FALSE}
-library(Seurat)
-library(ggplot2)
-```
-
-## Load the Seurat object
-```{r}
-load("clusters_seurat_object.RData")
-experiment.merged
-Idents(experiment.merged) <- "RNA_snn_res.0.5"
-```
-
-
-#0. Setup
-Load the final Seurat object, load libraries (also see additional required packages for each example)
-```{r, echo = F}
+# Setup additinal options
+```{r setup_opt, warning=FALSE,error=FALSE,message=FALSE, echo = F}
 options(width = 450)
 ```
 
-#1. DE With Single Cell Data Using Limma
-For differential expression using models more complex than those allowed by FindAllMarkers(), data from Seurat may be used in limma (https://www.bioconductor.org/packages/devel/bioc/vignettes/limma/inst/doc/usersguide.pdf)
-
-We illustrate by comparing sample 1 to sample 2 within cluster 0:
-```{r}
+## Load libraries
+```{r load_library, warning=FALSE,error=FALSE,message=FALSE}
+library(Seurat)
+library(ggplot2)
 library(limma)
+library(topGO)
+library(WGCNA)
+```
+
+## Load the Seurat object
+```{r load_rdata, warning=FALSE,error=FALSE,message=FALSE}
+load("clusters_seurat_object.RData")
+experiment.merged
+Idents(experiment.merged) <- "RNA_snn_res.0.25"
+```
+
+# 2. Gene Ontology (GO) Enrichment of Genes Expressed in a Cluster
+```{r GO, warning=FALSE,error=FALSE,message=FALSE}
+# install org.Hs.eg.db from Bioconductor if not already installed (for mouse only)
 cluster0 <- subset(experiment.merged, idents = '0')
 expr <- as.matrix(GetAssayData(cluster0))
-
 # Filter out genes that are 0 for every cell in this cluster
 bad <- which(rowSums(expr) == 0)
 expr <- expr[-bad,]
 
-mm <- model.matrix(~0 + orig.ident, data = cluster0@meta.data)
-fit <- lmFit(expr, mm)  
-head(coef(fit)) # means in each sample for each gene
-contr <- makeContrasts(orig.identUCD_Supp_VitE - orig.identUCD_Adj_VitE, levels = colnames(coef(fit)))
-tmp <- contrasts.fit(fit, contrasts = contr)
-tmp <- eBayes(tmp)
-topTable(tmp, sort.by = "P", n = 20) # top 20 DE genes
-```
-* logFC: log2 fold change (UCD_Supp_VitE/UCD_Adj_VitE)
-* AveExpr: Average expression, in log2 counts per million, across all cells included in analysis (i.e. those in cluster 0)
-* t: t-statistic, i.e. logFC divided by its standard error
-* P.Value: Raw p-value from test that logFC differs from 0
-* adj.P.Val: Benjamini-Hochberg false discovery rate adjusted p-value
-
-The limma vignette linked above gives more detail on model specification.
-
-# 2. Gene Ontology (GO) Enrichment of Genes Expressed in a Cluster
-```{r}
-library(topGO)
-# install org.Mm.eg.db from Bioconductor if not already installed (for mouse only)
-cluster0 <- subset(experiment.merged, idents = '0')
-expr <- as.matrix(GetAssayData(cluster0))
 # Select genes that are expressed > 0 in at least 75% of cells (somewhat arbitrary definition)
 n.gt.0 <- apply(expr, 1, function(x)length(which(x > 0)))
-expressed.genes <- rownames(expr)[which(n.gt.0/ncol(expr) >= 0.75)]
+expressed.genes <- rownames(expr)[which(n.gt.0/ncol(expr) >= 0.5)]
 all.genes <- rownames(expr)
 
 # define geneList as 1 if gene is in expressed.genes, 0 otherwise
@@ -81,11 +50,10 @@ names(geneList) <- all.genes
 		ontology = "BP", # use biological process ontology
 		allGenes = geneList,
 		geneSelectionFun = function(x)(x == 1),
-              annot = annFUN.org, mapping = "org.Mm.eg.db", ID = "symbol")
+              annot = annFUN.org, mapping = "org.Hs.eg.db", ID = "symbol")
 # Test for enrichment using Fisher's Exact Test
 	resultFisher <- runTest(GOdata, algorithm = "elim", statistic = "fisher")
 	GenTable(GOdata, Fisher = resultFisher, topNodes = 20, numChar = 60)
-
 ```
 * Annotated: number of genes (out of all.genes) that are annotated with that GO term
 * Significant: number of genes that are annotated with that GO term and meet our criteria for "expressed"
@@ -95,8 +63,7 @@ names(geneList) <- all.genes
 #3. Weighted Gene Co-Expression Network Analysis (WGCNA)
 WGCNA identifies groups of genes ("modules") with correlated expression.
 WARNING: TAKES A LONG TIME TO RUN
-```{r, warning = F}
-library(WGCNA)
+```{r WGCNA, warning=FALSE,error=FALSE,message=FALSE, warning = F}
 options(stringsAsFactors = F)
 datExpr <- t(as.matrix(GetAssayData(experiment.merged)))[,VariableFeatures(experiment.merged)]  # only use variable genes in analysis
 
@@ -121,19 +88,20 @@ addGuide = TRUE, guideHang = 0.05)
 Genes in grey module are unclustered.
 
 What genes are in the "blue" module?
-```{r}
+```{r wgcna2, warning=FALSE,error=FALSE,message=FALSE}
 colnames(datExpr)[net$colors == "blue"]
 ```
 
 Each cluster is represented by a summary "eigengene".
 Plot eigengenes for each non-grey module by clusters from Seurat:
-```{r}
+```{r wgcna3, warning=FALSE,error=FALSE,message=FALSE}
 f <- function(module){
   eigengene <- unlist(net$MEs[paste0("ME", module)])
   means <- tapply(eigengene, Idents(experiment.merged), mean, na.rm = T)
   return(means)
 }
-modules <- c("blue", "brown", "green", "turquoise", "yellow")
+unique(net$colors)
+modules <- c("blue", "brown", "turquoise", "yellow")
 plotdat <- sapply(modules, f)
 matplot(plotdat, col = modules, type = "l", lwd = 2, xaxt = "n", xlab = "Seurat Cluster",
         ylab = "WGCNA Module Eigengene")
@@ -151,6 +119,6 @@ FeaturePlot(experiment.merged, features = "blue.eigengene", cols = c("grey", "bl
 
 
 ## Session Information
-```{r}
+```{r session_info, warning=FALSE,error=FALSE,message=FALSE}
 sessionInfo()
 ```

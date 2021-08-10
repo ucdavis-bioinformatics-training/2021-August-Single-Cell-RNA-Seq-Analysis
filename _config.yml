@@ -40,9 +40,9 @@ navigation:
   - title: Generating Expression Matrix
     url: data_reduction/Expression_Matrix
 
-  # - heading: scRNAseq Analysis
-  # - title: Prepare scRNAseq Analysis
-  #   url: data_analysis/scrna_analysis_prepare
+  - heading: scRNAseq Analysis
+  - title: Prepare scRNAseq Analysis
+    url: data_analysis/scrna_analysis_prepare
   # - title: scRNAseq Analysis - PART1
   #   url: data_analysis/scRNA_Workshop-PART1_fixed
   # - title: scRNAseq Analysis - PART2

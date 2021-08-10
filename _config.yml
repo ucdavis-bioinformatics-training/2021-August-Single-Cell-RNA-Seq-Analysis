@@ -43,12 +43,12 @@ navigation:
   - heading: scRNAseq Analysis
   - title: Prepare scRNAseq Analysis
     url: data_analysis/scrna_analysis_prepare
-  # - title: scRNAseq Analysis - PART1
-  #   url: data_analysis/scRNA_Workshop-PART1_fixed
-  # - title: scRNAseq Analysis - PART2
-  #   url: data_analysis/scRNA_Workshop-PART2_fixed
-  # - title: scRNAseq Analysis - PART3
-  #   url: data_analysis/scRNA_Workshop-PART3_fixed
+  - title: scRNAseq Analysis - PART1
+    url: data_analysis/scRNA_Workshop-PART1_fixed
+  - title: scRNAseq Analysis - PART2
+    url: data_analysis/scRNA_Workshop-PART2_fixed
+  - title: scRNAseq Analysis - PART3
+    url: data_analysis/scRNA_Workshop-PART3_fixed
   # - title: scRNAseq Analysis - PART4
   #   url: data_analysis/scRNA_Workshop-PART4_fixed
   # - title: scRNAseq Analysis - PART5

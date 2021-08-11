@@ -49,12 +49,12 @@ navigation:
     url: data_analysis/scRNA_Workshop-PART2_fixed
   - title: scRNAseq Analysis - PART3
     url: data_analysis/scRNA_Workshop-PART3_fixed
-  # - title: scRNAseq Analysis - PART4
-  #   url: data_analysis/scRNA_Workshop-PART4_fixed
-  # - title: scRNAseq Analysis - PART5
-  #   url: data_analysis/scRNA_Workshop-PART5_fixed
-  # - title: scRNAseq Analysis - PART6
-  #   url: data_analysis/scRNA_Workshop-PART6_fixed
+  - title: scRNAseq Analysis - PART4
+    url: data_analysis/scRNA_Workshop-PART4_fixed
+  - title: scRNAseq Analysis - PART5
+    url: data_analysis/scRNA_Workshop-PART5_fixed
+  - title: scRNAseq Analysis - PART6
+    url: data_analysis/scRNA_Workshop-PART6_fixed
   # - title: Shiny App (extra)
   #   url: data_analysis/shiny_app_install
   # - title: Shiny App on AWS (extra)

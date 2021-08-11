@@ -473,27 +473,6 @@ Section: [samples]
 | cmo_ids |	The cell multiplexing oligo IDs used to multiplex this sample, separated by. Required for cell multiplexing libraries. |
 | description |	Optional. A description for the sample. |
 
-An example of running multi on a 10X normal PBMC sample.
-
-Raw data and supplemental files.
-```
-ll /share/workshop/intro_scrnaseq/raw_data/10x_NormalPBMC
-```
-
-config file for cellranger multi
-```
-cat /share/workshop/intro_scrnaseq/raw_data/10x_NormalPBMC_config.csv
-```
-
-cellranger multi output
-```
-ll /share/workshop/intro_scrnaseq/raw_data/10x_NormalPBMC_multi
-```
-
-**Optional excercise**
-
-1. Create a configuration csv file for this analysis and run cellranger multi instead of cellranger count
-
 
 
 ---

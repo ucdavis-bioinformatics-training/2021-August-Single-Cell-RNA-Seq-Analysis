@@ -429,7 +429,7 @@ myQuestions3 = [
     question: "Use ls to find the size (in bytes) of the last file in the /sbin directory.",
     answers: {
       a: "33211",
-      b: "77064",
+      b: "12288",
       c: "1058216",
       d: "1103"
     },

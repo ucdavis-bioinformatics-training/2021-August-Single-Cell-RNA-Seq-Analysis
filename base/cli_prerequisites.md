@@ -318,7 +318,7 @@ myQuestions2 = [
     correctAnswer: "a"
   },
   {
-    question: "From the /usr/bin directory, verify that the two following commands are equivalent:<br/><br/>cd ../../lib/gcc/<br/>cd ../../../../../../../lib/gcc<br/><br/>Why are these very different-looking commands equivalent?",
+    question: "From the /usr/bin directory, verify that the two following commands are equivalent:<br/><br/>cd ../../lib/<br/>cd ../../../../../../../lib/<br/><br/>Why are these very different-looking commands equivalent?",
     answers: {
       a: "The cd command knows where your home directory resides",
       b: "The terminal ignores excess dots",
